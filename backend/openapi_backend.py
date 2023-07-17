@@ -1,93 +1,89 @@
-# Flaskをインポートする
+# Flaskモジュールをインポート
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+# requestsモジュールをインポート
+import requests
 
-# Flaskアプリケーションを作成する
+# Flaskアプリケーションを作成
 app = Flask(__name__)
 
-# 公共交通オープンデータセンターのAPIのベースURL
-base_url = "https://api.odpt.org/api/v4/"
+# CORSを有効化
+CORS(app)
 
-# アクセストークン（ユーザ登録後に発行される）
-access_token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# アクセストークン（実際のものと置き換える）
+access_token = "949df92fb928d40507858f86a703e68f8cc76b3b93e42a7140abf4e0b20d0ebb"
 
-# 乗降者数を取得する関数
+# URLのベース部分
+base_url = "https://api.odpt.org/api/v4"
 
+# 駅情報を取得する関数
+def get_station_data(lon, lat, radius):
+    # URLにクエリパラメータを追加
+    places = "places"
+    url = f"{base_url}/{places}/odpt:Station?lon={lon}&lat={lat}&radius={radius}&acl:consumerKey={access_token}"
 
-def get_passenger_count(station_id):
-    # APIのエンドポイント（乗降者数情報）
-    endpoint = "odpt:PassengerSurvey"
+    # HTTP GETリクエストを送信
+    response = requests.get(url)
 
-    # リクエストのパラメータ（駅IDとアクセストークン）
-    params = {
-        "odpt:station": station_id,
-        "acl:consumerKey": access_token
-    }
+    # JSONレスポンスを取得して返す
+    return response.json()
 
-    # リクエストを送信し、レスポンスを受け取る
-    import requests
-    response = requests.get(base_url + endpoint, params=params)
+# 乗降者数情報を取得する関数
+def get_passenger_data(passenger_surveys):
+    # 乗降者数情報のリストを作成
+    passenger_data = []
+    for passenger_survey in passenger_surveys:
+        # URLにクエリパラメータを追加
+        url = f"{base_url}/odpt:PassengerSurvey?acl:consumerKey={access_token}&owl:sameAs={passenger_survey}"
 
-    # レスポンスが正常な場合
-    if response.status_code == 200:
-        # レスポンスのJSONデータを取得する
-        data = response.json()
+        # HTTP GETリクエストを送信
+        response = requests.get(url)
 
-        # データが空でない場合
-        if data:
-            # 最新の乗降者数情報を取得する
-            latest_data = data[0]
+        # JSONレスポンスを取得して追加
+        passenger_data.append(response.json()[0])
 
-            # 駅名と乗降者数を返す
-            station_name = latest_data["odpt:stationTitle"]["ja"]
-            passenger_count = latest_data["odpt:passengerJourneys"]
-            return station_name, passenger_count
+    # 乗降者数情報のリストを返す
+    return passenger_data
 
-        # データが空の場合
-        else:
-            # エラーメッセージを返す
-            return "データがありません。"
+# 最新のsurveyYearに該当するデータだけを抽出する関数
+def filter_latest_data(passenger_data):
+    # 最新のsurveyYearを取得する（odpt:passengerSurveyObjectの中から）
+    latest_year = max(data["odpt:surveyYear"] for data in passenger_data for data in data["odpt:passengerSurveyObject"])
 
-    # レスポンスが正常でない場合
-    else:
-        # エラーメッセージを返す
-        return "リクエストに失敗しました。"
+    # 最新のsurveyYearに該当するデータだけを抽出する（odpt:passengerSurveyObjectの中から）
+    latest_data = [data for data in passenger_data for data in data["odpt:passengerSurveyObject"] if data["odpt:surveyYear"] == latest_year]
 
-# /passenger_countというURLでGETリクエストを受け付けるルートを定義する
+    # 抽出したデータを返す
+    return latest_data
 
+# /passengerというエンドポイントを定義
+@app.route("/passenger")
+def get_passenger():
+    # クエリパラメータから経度と緯度と範囲を取得
+    lon = request.args.get("lon")
+    lat = request.args.get("lat")
+    radius = request.args.get("radius")
 
-@app.route("/passenger_count", methods=["GET"])
-def passenger_count():
-    # リクエストから駅IDを取得する
-    station_id = request.args.get("station_id")
+    # 駅情報を取得する
+    station_data = get_station_data(lon, lat, radius)
 
-    # 駅IDが指定されている場合
-    if station_id:
-        # 駅IDを指定して、乗降者数を取得する
-        result = get_passenger_count(station_id)
+    # 駅情報からodpt:PassengerSurveyのリストを作成
+    passenger_surveys = []
+    for station in station_data:
+        passenger_surveys.extend(station["odpt:passengerSurvey"])
 
-        # 結果がタプル（駅名と乗降者数）の場合
-        if isinstance(result, tuple):
-            # 結果をJSON形式で返す
-            return jsonify({
-                "station_name": result[0],
-                "passenger_count": result[1]
-            })
+    # 乗降者数情報を取得する
+    passenger_data = get_passenger_data(passenger_surveys)
 
-        # 結果が文字列（エラーメッセージ）の場合
-        elif isinstance(result, str):
-            # エラーメッセージをJSON形式で返す
-            return jsonify({
-                "error": result
-            })
+    # 最新のsurveyYearに該当するデータだけを抽出する
+    latest_data = filter_latest_data(passenger_data)
 
-    # 駅IDが指定されていない場合
-    else:
-        # エラーメッセージをJSON形式で返す
-        return jsonify({
-            "error": "駅IDが指定されていません。"
-        })
+    # 抽出したデータから、passengerJourneysを取り出して合計する（odpt:passengerSurveyObjectの中から）
+    total_passengers = sum(data["odpt:passengerJourneys"] for data in latest_data)
 
+    # JSONレスポンスを返却
+    return jsonify({"total_passengers": total_passengers})
 
-# Flaskアプリケーションを実行する（デバッグモードで）
+# Flaskアプリケーションを実行
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

@@ -1,96 +1,72 @@
-.App {
-  font-family: sans-serif;
-  width: 100%;
-  height: 100vh;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* Sidebar */
-
-.Sidebar {
-  height: 1000px;
-  width: 250px;
-  background-color:cadetblue;
-  position: fixed;
-}
-
-.SidebarList {
-  height: auto;
-  padding: 0;
-  width: 100%;
-}
-
-.SidebarList .row {
-  height: 60px;
-  width: 100%;
-  background-color: cadetblue;
-  display: flex;
-  color: white;
-  justify-content: center;
-  align-items: center;
-}
-
-.SidebarList .row:hover {
-  cursor: pointer;
-  background-color:darkslategray;
-}
-
-.SidebarList #active {
-  background-color: darkslategray;
-}
-
-.row #icon {
-  flex: 30%;
-  display: grid;
-  place-items: center;
-}
-
-.row #title {
-  flex: 70%;
-}
-
-/* Table */
+/* ページ全体のフォントを変更 */
 body {
-  /* padding: 20px 40px; */
-  margin: 0;
+  font-family: "Noto Sans JP", sans-serif;
 }
 
-table {
-  padding: 20px 270px;
-  width: 80%;
-  border-spacing: 0;
-  table-layout: fixed;
+/* コンテナのスタイルを変更 */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-thead {
-  text-align: left;
+/* ヘッダーのスタイルを変更 */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  background-color: #333;
+  color: #fff;
 }
 
-td {
-  background: #eee;
-  border-left: solid 1px #d3d3d3;
-  padding: 5px 5px;
-  line-height: 1.5;
+/* タイトルのスタイルを変更 */
+h1 {
+  color: #fff;
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-tr:nth-child(odd) td{
-  background: #fff;
-  padding: 5px 5px;
-  line-height: 1.5;
-  border-bottom: solid 1px #d3d3d3;
+/* 地図の枠線を追加 */
+.leaflet-container {
+  border: 1px solid #ccc;
 }
 
-th {
-  padding: 5px 5px;
-  color: #eee;
-  background-color:cadetblue;
+/* 地図をセンターに配置 */
+.map {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
 }
 
-th span {
-  margin-left: 10px;
+/* 説明のスタイルを変更 */
+.description {
+  color: #666;
+  font-size: 18px;
+  margin: 20px;
+  text-align: center;
+}
+
+/* 説明の行間を縮める */
+.description p {
+  line-height: 0.5;
+}
+
+/* 乗降者数のスタイルを変更 */
+.passenger {
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* フッターのスタイルを変更 */
+footer {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
 }
